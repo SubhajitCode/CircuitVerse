@@ -32,6 +32,10 @@ function SubCircuit(x, y, scope = globalScope, id = undefined, savedData = undef
             for (var i = 0; i < savedData["outputNodes"].length; i++) {
                 scope.allNodes[savedData["outputNodes"][i]].deleted = true;
             }
+            //for led
+            for (var i = 0; i < savedData["indicatorLeds"].length; i++) {
+                scope.DigitalLed[savedData["indicatorLeds"][i]].deleted = true;
+            }
         }
         return;
 
@@ -44,6 +48,8 @@ function SubCircuit(x, y, scope = globalScope, id = undefined, savedData = undef
     this.savedData = savedData;
     this.inputNodes = [];
     this.outputNodes = [];
+    // for led
+    this.indicatorLeds = [];
     this.localScope = new Scope();
 
     if (this.savedData != undefined) {
@@ -63,6 +69,14 @@ function SubCircuit(x, y, scope = globalScope, id = undefined, savedData = undef
             this.outputNodes[i].parent = this;
             this.outputNodes[i].layout_id = subcircuitScope.Output[i].layoutProperties.id;
         }
+        //for led
+        for (var i = 0; i < this.savedData["indicatorLeds"].length; i++) {
+            this.indicatorLeds.push(this.scope.DigitalLed[this.savedData["indicatorLeds"][i]]);
+            this.indicatorLeds[i].parent = this;
+            this.indicatorLeds[i].layoutProperties.id = subcircuitScope.DigitalLed[i].layoutProperties.id;
+            this.indicatorLeds[i].subcircuitVisible = true;
+            this.indicatorLeds[i].inp1.visibility= false;
+        }
         if (this.version == "1.0") { // For backward compatibility
             this.version = "2.0";
             this.x -= subcircuitScope.layout.width / 2;
@@ -78,7 +92,16 @@ function SubCircuit(x, y, scope = globalScope, id = undefined, savedData = undef
                 this.outputNodes[i].y = subcircuitScope.Output[i].layoutProperties.y;
                 this.outputNodes[i].leftx = this.outputNodes[i].x;
                 this.outputNodes[i].lefty = this.outputNodes[i].y;
+            }//for led
+            for (var i = 0; i < this.indicatorLeds.length; i++) {
+                this.indicatorLeds[i].x = subcircuitScope.DigitalLed[i].layoutProperties.x;
+                this.indicatorLeds[i].y = subcircuitScope.DigitalLed[i].layoutProperties.y;
+                this.indicatorLeds[i].leftx = this.indicatorLeds[i].x;
+                this.indicatorLeds[i].lefty = this.indicatorLeds[i].y;
+                this.indicatorLeds[i].subcircuitVisible=true;
+                this.indicatorLeds[i].inp1.visibility= false;
             }
+
 
         }
 
@@ -105,7 +128,7 @@ function SubCircuit(x, y, scope = globalScope, id = undefined, savedData = undef
 SubCircuit.prototype = Object.create(CircuitElement.prototype);
 SubCircuit.prototype.constructor = SubCircuit;
 
-SubCircuit.prototype.makeConnections = function() {
+SubCircuit.prototype.makeConnections = function () {
     for (let i = 0; i < this.inputNodes.length; i++) {
         this.localScope.Input[i].output1.connectWireLess(this.inputNodes[i]);
         this.localScope.Input[i].output1.subcircuitOverride = true;
@@ -115,19 +138,27 @@ SubCircuit.prototype.makeConnections = function() {
         this.localScope.Output[i].inp1.connectWireLess(this.outputNodes[i]);
         this.outputNodes[i].subcircuitOverride = true;
     }
+    //for led
+    for (let i = 0; i < this.indicatorLeds.length; i++) {
+        this.localScope.DigitalLed[i].inp1.connectWireLess(this.indicatorLeds[i].inp1);
+        this.indicatorLeds[i].subcircuitOverride = true;
+    }
 
 }
 
-SubCircuit.prototype.removeConnections = function() {
+SubCircuit.prototype.removeConnections = function () {
     for (let i = 0; i < this.inputNodes.length; i++) {
         this.localScope.Input[i].output1.disconnectWireLess(this.inputNodes[i]);
     }
 
     for (let i = 0; i < this.outputNodes.length; i++)
         this.localScope.Output[i].inp1.disconnectWireLess(this.outputNodes[i]);
+    //for led
+    for (let i = 0; i < this.indicatorLeds.length; i++)
+        this.localScope.DigitalLed[i].inp1.disconnectWireLess(this.indicatorLeds[i].inp1);
 }
 
-SubCircuit.prototype.buildCircuit = function() {
+SubCircuit.prototype.buildCircuit = function () {
 
     var subcircuitScope = scopeList[this.id];
     loadScope(this.localScope, this.data);
@@ -151,12 +182,18 @@ SubCircuit.prototype.buildCircuit = function() {
             a.layout_id = subcircuitScope.Input[i].layoutProperties.id;
             this.inputNodes.push(a);
         }
+
+        for (var i = 0; i < subcircuitScope.DigitalLed.length; i++) {
+            var a = new DigitalLed(subcircuitScope.DigitalLed[i].layoutProperties.x, subcircuitScope.DigitalLed[i].layoutProperties.y, this.scope, color = "Red", subcircuitScope.DigitalLed[i].layoutProperties, true, this);
+            a.layoutProperties.id = subcircuitScope.DigitalLed[i].layoutProperties.id;
+            this.indicatorLeds.push(a);
+        }
     }
 
 }
 
 // Needs to be deprecated, removed
-SubCircuit.prototype.reBuild = function() {
+SubCircuit.prototype.reBuild = function () {
     return;
     new SubCircuit(x = this.x, y = this.y, scope = this.scope, this.id)
     this.scope.backups = []; // Because all previous states are invalid now
@@ -164,7 +201,7 @@ SubCircuit.prototype.reBuild = function() {
     showMessage("Subcircuit: " + subcircuitScope.name + " has been reloaded.")
 }
 
-SubCircuit.prototype.reBuildCircuit = function() {
+SubCircuit.prototype.reBuildCircuit = function () {
     this.data = JSON.parse(scheduleBackup(scopeList[this.id]));
     this.localScope = new Scope();
     loadScope(this.localScope, this.data);
@@ -173,7 +210,7 @@ SubCircuit.prototype.reBuildCircuit = function() {
 
 }
 
-SubCircuit.prototype.reset = function() {
+SubCircuit.prototype.reset = function () {
 
     this.removeConnections();
 
@@ -183,7 +220,7 @@ SubCircuit.prototype.reset = function() {
         subcircuitScope.SubCircuit[i].reset();
     }
 
-    if (subcircuitScope.Input.length == 0 && subcircuitScope.Output.length == 0) {
+    if (subcircuitScope.Input.length == 0 && subcircuitScope.Output.length == 0 && subcircuitScope.DigitalLed.length==0) {
         showError("SubCircuit : " + subcircuitScope.name + " is an empty circuit");
         this.delete();
         this.scope.backups = [];
@@ -275,6 +312,44 @@ SubCircuit.prototype.reset = function() {
             this.outputNodes.push(a);
         }
     }
+    //for led
+    var temp_map_led = {}
+    for (var i = 0; i < subcircuitScope.DigitalLed.length; i++) {
+        temp_map_led[subcircuitScope.DigitalLed[i].layoutProperties.id] = [subcircuitScope.DigitalLed[i], undefined];
+    }
+    for (var i = 0; i < this.indicatorLeds.length; i++) {
+        if (temp_map_led.hasOwnProperty(this.indicatorLeds[i].layoutProperties.id)) {
+            temp_map_led[this.indicatorLeds[i].layoutProperties.id][1] = this.indicatorLeds[i];
+        } else {
+            this.indicatorLeds[i].delete();
+        }
+    }
+
+    for (id in temp_map_led) {
+        if (temp_map_led[id][1]) {
+            if (temp_map_led[id][0].layoutProperties.x == temp_map_led[id][1].x && temp_map_led[id][0].layoutProperties.y == temp_map_led[id][1].y)
+                temp_map_led[id][1].bitWidth = temp_map_led[id][0].bitWidth;
+            else {
+                temp_map_led[id][1].delete();
+                //subcircuitScope.DigitalLed[i].layoutProperties.x, subcircuitScope.DigitalLed[i].layoutProperties.y, this.scope, color = "Red", subcircuitScope.DigitalLed[i].layoutProperties, true, this
+                temp_map_led[id][1] = new DigitalLed(temp_map_led[id][0].layoutProperties.x, temp_map_led[id][0].layoutProperties.y,this.Scope,color="Red",temp_map_led[id][0].layoutProperties,true,this);
+                temp_map_led[id][1].layoutProperties.id = id
+            }
+        }
+    }
+
+    this.indicatorLeds = []
+    for (var i = 0; i < subcircuitScope.DigitalLed.length; i++) {
+        var led = temp_map_led[subcircuitScope.DigitalLed[i].layoutProperties.id][0]
+        if (temp_map_led[led.layoutProperties.id][1])
+            this.indicatorLeds.push(temp_map_led[led.layoutProperties.id][1])
+        else {
+            var a = new DigitalLed(led.layoutProperties.x, led.layoutProperties.y,this.Scope,color="Red",led.layoutProperties, true,this);
+            a.layoutProperties.id = led.layoutProperties.id;
+            this.indicatorLeds.push(a);
+        }
+    }
+    //led end
 
     if (subcircuitScope.timeStamp > this.lastUpdated) {
         this.reBuildCircuit();
@@ -288,38 +363,39 @@ SubCircuit.prototype.reset = function() {
 
 }
 
-SubCircuit.prototype.click = function() {
+SubCircuit.prototype.click = function () {
     // this.id=prompt();
 }
 
-SubCircuit.prototype.addInputs = function() {
+SubCircuit.prototype.addInputs = function () {
     for (let i = 0; i < subCircuitInputList.length; i++)
         for (let j = 0; j < this.localScope[subCircuitInputList[i]].length; j++)
             simulationArea.simulationQueue.add(this.localScope[subCircuitInputList[i]][j], 0)
     for (let j = 0; j < this.localScope.SubCircuit.length; j++)
         this.localScope.SubCircuit[j].addInputs();
 }
-SubCircuit.prototype.isResolvable = function() {
+SubCircuit.prototype.isResolvable = function () {
     if (CircuitElement.prototype.isResolvable.call(this))
         return true;
     return false;
 }
-SubCircuit.prototype.dblclick = function() {
+SubCircuit.prototype.dblclick = function () {
     switchCircuit(this.id)
 }
-SubCircuit.prototype.saveObject = function() {
+SubCircuit.prototype.saveObject = function () {
     var data = {
         x: this.x,
         y: this.y,
         id: this.id,
         inputNodes: this.inputNodes.map(findNode),
         outputNodes: this.outputNodes.map(findNode),
+        indicatorLeds: this.indicatorLeds.map(findLed),
         version: this.version,
     }
     return data;
 }
 
-SubCircuit.prototype.resolve = function() {
+SubCircuit.prototype.resolve = function () {
 
 
     // deprecated
@@ -345,15 +421,15 @@ SubCircuit.prototype.resolve = function() {
 
 }
 
-SubCircuit.prototype.isResolvable = function() {
+SubCircuit.prototype.isResolvable = function () {
     return false
 }
 
-SubCircuit.prototype.verilogName = function() {
+SubCircuit.prototype.verilogName = function () {
     return verilog.fixName(scopeList[this.id].name);
 }
 
-SubCircuit.prototype.customDraw = function() {
+SubCircuit.prototype.customDraw = function () {
 
     var subcircuitScope = scopeList[this.id];
 
@@ -371,8 +447,8 @@ SubCircuit.prototype.customDraw = function() {
     ctx.fillStyle = "black";
     if (this.version == "1.0")
         fillText(ctx, subcircuitScope.name, xx, yy - subcircuitScope.layout.height / 2 + 13, 11);
-    else if (this.version == "2.0"){
-        if(subcircuitScope.layout.titleEnabled){
+    else if (this.version == "2.0") {
+        if (subcircuitScope.layout.titleEnabled) {
             fillText(ctx, subcircuitScope.name, subcircuitScope.layout.title_x + xx, yy + subcircuitScope.layout.title_y, 11);
         }
     }
@@ -394,15 +470,24 @@ SubCircuit.prototype.customDraw = function() {
     }
     ctx.fill();
 
-    for (var i = 0; i < this.inputNodes.length; i++)
+    for (var i = 0; i < this.inputNodes.length; i++) {
         this.inputNodes[i].draw();
-    for (var i = 0; i < this.outputNodes.length; i++)
-        this.outputNodes[i].draw();
+        //console.log("No of input Node = " + subcircuitScope.Input.length);
+
+    }
+    for (var i = 0; i < this.outputNodes.length; i++) {
+       this.outputNodes[i].draw();
+
+    }
+    for (var i = 0; i < this.indicatorLeds.length; i++) {
+        this.indicatorLeds[i].subcircuitVisible=true;
+        this.indicatorLeds[i].customDraw();
+    }
 
 }
 SubCircuit.prototype.centerElement = true; // To center subcircuit when new
 
-SubCircuit.prototype.determine_label = function(x, y) {
+SubCircuit.prototype.determine_label = function (x, y) {
     if (x == 0) return ["left", 5, 5]
     if (x == scopeList[this.id].layout.width) return ["right", -5, 5]
     if (y == 0) return ["center", 0, 13]

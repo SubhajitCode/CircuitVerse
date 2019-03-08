@@ -1,22 +1,22 @@
-function constructNodeConnections(node, data) {
+function constructIndicatorConnections(Indicator, data) {
     for (var i = 0; i < data["connections"].length; i++)
-        if (!node.connections.contains(node.scope.allNodes[data["connections"][i]])) node.connect(node.scope.allNodes[data["connections"][i]]);
+        if (!Indicator.connections.contains(Indicator.scope.allIndicators[data["connections"][i]])) Indicator.connect(Indicator.scope.allIndicators[data["connections"][i]]);
 }
 
-//Fn to replace node by node @ index in global Node List - used when loading
-function replace(node, index) {
+//Fn to replace Indicator by Indicator @ index in global Indicator List - used when loading
+function replace(Indicator, index) {
     if (index == -1) {
-        return node;
+        return Indicator;
     }
-    var scope = node.scope;
-    var parent = node.parent;
-    parent.nodeList.clean(node);
-    node.delete();
-    node = scope.allNodes[index];
-    node.parent = parent;
-    parent.nodeList.push(node);
-    node.updateRotation();
-    return node;
+    var scope = Indicator.scope;
+    var parent = Indicator.parent;
+    parent.IndicatorList.clean(Indicator);
+    Indicator.delete();
+    Indicator = scope.allIndicators[index];
+    Indicator.parent = parent;
+    parent.IndicatorList.push(Indicator);
+    Indicator.updateRotation();
+    return Indicator;
 }
 
 function extractBits(num, start, end) {
@@ -34,32 +34,32 @@ function dec2bin(dec, bitWidth = undefined) {
     return '0'.repeat(bitWidth - bin.length) + bin;
 }
 
-//find Index of a node
-function findNode(x) {
-    return x.scope.allNodes.indexOf(x);
+//find Index of a Indicator
+function findIndicator(x) {
+    return x.scope.allIndicators.indexOf(x);
 }
 
-function loadNode(data, scope) {
-    var n = new Node(data["x"], data["y"], data["type"], scope.root, data["bitWidth"], data["label"]);
+function loadIndicator(data, scope) {
+    var n = new Indicator(data["x"], data["y"], data["type"], scope.root, data["bitWidth"], data["label"]);
 }
 
-//get Node in index x in scope and set parent
-function extractNode(x, scope, parent) {
-    var n = scope.allNodes[x];
+//get Indicator in index x in scope and set parent
+function extractIndicator(x, scope, parent) {
+    var n = scope.allIndicators[x];
     n.parent = parent;
     return n;
 }
 
-//output node=1
-//input node=0
-//intermediate node =2
+//output Indicator=1
+//input Indicator=0
+//intermediate Indicator =2
 
-NODE_OUTPUT = 1;
-NODE_INPUT = 0;
-NODE_INTERMEDIATE = 2;
+Indicator_OUTPUT = 1;
+Indicator_INPUT = 0;
+Indicator_INTERMEDIATE = 2;
 
-function Node(x, y, type, parent, bitWidth = undefined, label = "",visibility=true) {
-    
+function Indicator(x, y, type, parent, bitWidth = undefined, label = "") {
+
     // Should never raise, but just in case
     if(isNaN(x) || isNaN(y)){
         this.delete();
@@ -67,14 +67,14 @@ function Node(x, y, type, parent, bitWidth = undefined, label = "",visibility=tr
         return;
     }
 
-    forceResetNodes = true;
+    forceResetIndicators = true;
 
-    this.objectType = "Node";
-    this.id = 'node' + uniqueIdCounter;
+    this.objectType = "Indicator";
+    this.id = 'Indicator' + uniqueIdCounter;
     uniqueIdCounter++;
     this.parent = parent;
-    if (type != 2 && this.parent.nodeList !== undefined)
-        this.parent.nodeList.push(this);
+    if (type != 2 && this.parent.IndicatorList !== undefined)
+        this.parent.IndicatorList.push(this);
 
     if (bitWidth == undefined) {
         this.bitWidth = parent.bitWidth;
@@ -105,9 +105,9 @@ function Node(x, y, type, parent, bitWidth = undefined, label = "",visibility=tr
     this.refresh();
 
     if (this.type == 2)
-        this.parent.scope.nodes.push(this);
+        this.parent.scope.Indicators.push(this);
 
-    this.parent.scope.allNodes.push(this);
+    this.parent.scope.allIndicators.push(this);
 
     this.queueProperties = {
         inQueue: false,
@@ -117,31 +117,31 @@ function Node(x, y, type, parent, bitWidth = undefined, label = "",visibility=tr
 
 }
 
-Node.prototype.propagationDelay = 0;
-Node.prototype.subcircuitOverride = false;
-Node.prototype.setLabel = function(label) {
+Indicator.prototype.propagationDelay = 0;
+Indicator.prototype.subcircuitOverride = false;
+Indicator.prototype.setLabel = function(label) {
     this.label = label; //|| "";
 }
 
 
-Node.prototype.converToIntermediate = function() {
+Indicator.prototype.converToIntermediate = function() {
     this.type = 2;
     this.x = this.absX();
     this.y = this.absY();
     this.parent = this.scope.root;
-    this.scope.nodes.push(this);
+    this.scope.Indicators.push(this);
 }
 
-Node.prototype.startDragging = function() {
+Indicator.prototype.startDragging = function() {
     this.oldx = this.x;
     this.oldy = this.y;
 }
-Node.prototype.drag = function() {
+Indicator.prototype.drag = function() {
     this.x = this.oldx + simulationArea.mouseX - simulationArea.mouseDownX;
     this.y = this.oldy + simulationArea.mouseY - simulationArea.mouseDownY;
 }
 
-Node.prototype.saveObject = function() {
+Indicator.prototype.saveObject = function() {
 
     if (this.type == 2) {
         this.leftx = this.x;
@@ -156,19 +156,19 @@ Node.prototype.saveObject = function() {
         connections: [],
     }
     for (var i = 0; i < this.connections.length; i++) {
-        data["connections"].push(findNode(this.connections[i]));
+        data["connections"].push(findIndicator(this.connections[i]));
     }
     return data;
 }
 
-Node.prototype.updateRotation = function() {
+Indicator.prototype.updateRotation = function() {
     var x, y;
     [x, y] = rotate(this.leftx, this.lefty, this.parent.direction);
     this.x = x;
     this.y = y;
 }
 
-Node.prototype.refresh = function() {
+Indicator.prototype.refresh = function() {
 
     this.updateRotation();
     for (var i = 0; i < this.connections.length; i++) {
@@ -178,29 +178,29 @@ Node.prototype.refresh = function() {
 
 }
 
-Node.prototype.absX = function() {
+Indicator.prototype.absX = function() {
     return this.x + this.parent.x;
 }
-Node.prototype.absY = function() {
+Indicator.prototype.absY = function() {
     return this.y + this.parent.y;
 }
 
-Node.prototype.updateScope = function(scope) {
+Indicator.prototype.updateScope = function(scope) {
     this.scope = scope;
     if (this.type == 2) this.parent = scope.root;
 
 }
 
-Node.prototype.isResolvable = function() {
+Indicator.prototype.isResolvable = function() {
     return this.value != undefined;
 }
 
-Node.prototype.reset = function() {
+Indicator.prototype.reset = function() {
     this.value = undefined;
     this.highlighted = false;
 }
 
-Node.prototype.connect = function(n) {
+Indicator.prototype.connect = function(n) {
 
     if (n == this) return;
     if (n.connections.contains(this)) return;
@@ -212,7 +212,7 @@ Node.prototype.connect = function(n) {
     updateSimulation = true;
     scheduleUpdate();
 }
-Node.prototype.connectWireLess = function(n) {
+Indicator.prototype.connectWireLess = function(n) {
 
     if (n == this) return;
     if (n.connections.contains(this)) return;
@@ -224,13 +224,13 @@ Node.prototype.connectWireLess = function(n) {
     scheduleUpdate();
 }
 
-Node.prototype.disconnectWireLess = function(n) {
+Indicator.prototype.disconnectWireLess = function(n) {
 
     this.connections.clean(n);
     n.connections.clean(this);
 }
 
-Node.prototype.resolve = function() {
+Indicator.prototype.resolve = function() {
 
     // Remove Propogation of values (TriState)
     if (this.value == undefined) {
@@ -244,7 +244,7 @@ Node.prototype.resolve = function() {
             }
         }
 
-        if (this.type == NODE_INPUT) {
+        if (this.type == Indicator_INPUT) {
             if (this.parent.objectType == "Splitter") {
                 this.parent.removePropogation();
             } else
@@ -256,7 +256,7 @@ Node.prototype.resolve = function() {
 
         }
 
-        if (this.type == NODE_OUTPUT && !this.subcircuitOverride) {
+        if (this.type == Indicator_OUTPUT && !this.subcircuitOverride) {
             if (this.parent.isResolvable() && !this.parent.queueProperties.inQueue) {
                 if (this.parent.objectType == "TriState") {
                     if (this.parent.state.value)
@@ -281,37 +281,37 @@ Node.prototype.resolve = function() {
 
     for (var i = 0; i < this.connections.length; i++) {
 
-        let node = this.connections[i];
+        let Indicator = this.connections[i];
 
-        if (node.value != this.value) {
+        if (Indicator.value != this.value) {
 
-            if (node.type == 1 && node.value != undefined && node.parent.objectType != "TriState" && !(node.subcircuitOverride && node.scope != this.scope)) {
+            if (Indicator.type == 1 && Indicator.value != undefined && Indicator.parent.objectType != "TriState" && !(Indicator.subcircuitOverride && Indicator.scope != this.scope)) {
 
                 this.highlighted = true;
-                node.highlighted = true;
+                Indicator.highlighted = true;
 
-                showError("Contention Error: " + this.value + " and " + node.value);
-            } else if (node.bitWidth == this.bitWidth || node.type == 2) {
+                showError("Contention Error: " + this.value + " and " + Indicator.value);
+            } else if (Indicator.bitWidth == this.bitWidth || Indicator.type == 2) {
 
-                if (node.parent.objectType == "TriState" && node.value != undefined && node.type == 1) {
-                    if (node.parent.state.value)
-                        simulationArea.contentionPending.push(node.parent);
+                if (Indicator.parent.objectType == "TriState" && Indicator.value != undefined && Indicator.type == 1) {
+                    if (Indicator.parent.state.value)
+                        simulationArea.contentionPending.push(Indicator.parent);
                 }
 
-                node.bitWidth = this.bitWidth;
-                node.value = this.value;
-                simulationArea.simulationQueue.add(node);
+                Indicator.bitWidth = this.bitWidth;
+                Indicator.value = this.value;
+                simulationArea.simulationQueue.add(Indicator);
             } else {
                 this.highlighted = true;
-                node.highlighted = true;
-                showError("BitWidth Error: " + this.bitWidth + " and " + node.bitWidth);
+                Indicator.highlighted = true;
+                showError("BitWidth Error: " + this.bitWidth + " and " + Indicator.bitWidth);
             }
         }
     }
 
 }
 
-Node.prototype.checkHover = function() {
+Indicator.prototype.checkHover = function() {
     if (!simulationArea.mouseDown) {
         if (simulationArea.hover == this) {
             this.hover = this.isHover();
@@ -335,11 +335,7 @@ Node.prototype.checkHover = function() {
     }
 }
 
-Node.prototype.draw = function() {
-    if(this.visibility==false){
-        //early reurn dont draw for subcircuit led
-        return;
-    }
+Indicator.prototype.draw = function() {
 
     if (this.type == 2) this.checkHover();
 
@@ -407,11 +403,11 @@ Node.prototype.draw = function() {
 
 }
 
-Node.prototype.checkDeleted = function() {
+Indicator.prototype.checkDeleted = function() {
     if (this.deleted) this.delete();
     if (this.connections.length == 0 && this.type == 2) this.delete();
 }
-Node.prototype.update = function() {
+Indicator.prototype.update = function() {
 
     if (embed) return;
 
@@ -419,10 +415,10 @@ Node.prototype.update = function() {
     this.hover = this.isHover();
 
     if (!simulationArea.mouseDown) {
-        if (this.absX() != this.prevx || this.absY() != this.prevy) { // Connect to any node
+        if (this.absX() != this.prevx || this.absY() != this.prevy) { // Connect to any Indicator
             this.prevx = this.absX();
             this.prevy = this.absY();
-            this.nodeConnect();
+            this.IndicatorConnect();
         }
     }
 
@@ -503,17 +499,17 @@ Node.prototype.update = function() {
         this.wasClicked = false;
 
         if (simulationArea.mouseX == this.absX() && simulationArea.mouseY == this.absY()) {
-            return; // no new node situation
+            return; // no new Indicator situation
         }
 
         var x1, y1, x2, y2, flag = 0;
         var n1, n2;
 
-        // (x,y) present node, (x1,y1) node 1 , (x2,y2) node 2
-        // n1 - node 1, n2 - node 2
-        // node 1 may or may not be there
-        // flag = 0  - node 2 only
-        // flag = 1  - node 1 and node 2
+        // (x,y) present Indicator, (x1,y1) Indicator 1 , (x2,y2) Indicator 2
+        // n1 - Indicator 1, n2 - Indicator 2
+        // Indicator 1 may or may not be there
+        // flag = 0  - Indicator 2 only
+        // flag = 1  - Indicator 1 and Indicator 2
         x2 = simulationArea.mouseX;
         y2 = simulationArea.mouseY;
         x = this.absX();
@@ -541,16 +537,16 @@ Node.prototype.update = function() {
         }
 
         if (flag == 1) {
-            for (var i = 0; i < this.parent.scope.allNodes.length; i++) {
-                if (x1 == this.parent.scope.allNodes[i].absX() && y1 == this.parent.scope.allNodes[i].absY()) {
-                    n1 = this.parent.scope.allNodes[i];
+            for (var i = 0; i < this.parent.scope.allIndicators.length; i++) {
+                if (x1 == this.parent.scope.allIndicators[i].absX() && y1 == this.parent.scope.allIndicators[i].absY()) {
+                    n1 = this.parent.scope.allIndicators[i];
 
                     break;
                 }
             }
 
             if (n1 == undefined) {
-                n1 = new Node(x1, y1, 2, this.scope.root);
+                n1 = new Indicator(x1, y1, 2, this.scope.root);
                 for (var i = 0; i < this.parent.scope.wires.length; i++) {
                     if (this.parent.scope.wires[i].checkConvergence(n1)) {
                         this.parent.scope.wires[i].converge(n1);
@@ -561,15 +557,15 @@ Node.prototype.update = function() {
             this.connect(n1);
         }
 
-        for (var i = 0; i < this.parent.scope.allNodes.length; i++) {
-            if (x2 == this.parent.scope.allNodes[i].absX() && y2 == this.parent.scope.allNodes[i].absY()) {
-                n2 = this.parent.scope.allNodes[i];
+        for (var i = 0; i < this.parent.scope.allIndicators.length; i++) {
+            if (x2 == this.parent.scope.allIndicators[i].absX() && y2 == this.parent.scope.allIndicators[i].absY()) {
+                n2 = this.parent.scope.allIndicators[i];
                 break;
             }
         }
 
         if (n2 == undefined) {
-            n2 = new Node(x2, y2, 2, this.scope.root);
+            n2 = new Indicator(x2, y2, 2, this.scope.root);
             for (var i = 0; i < this.parent.scope.wires.length; i++) {
                 if (this.parent.scope.wires[i].checkConvergence(n2)) {
                     this.parent.scope.wires[i].converge(n2);
@@ -594,13 +590,13 @@ Node.prototype.update = function() {
 
 }
 
-Node.prototype.delete = function() {
+Indicator.prototype.delete = function() {
     updateSimulation = true;
     this.deleted = true;
-    this.parent.scope.allNodes.clean(this);
-    this.parent.scope.nodes.clean(this);
+    this.parent.scope.allIndicators.clean(this);
+    this.parent.scope.Indicators.clean(this);
 
-    this.parent.scope.root.nodeList.clean(this); // Hope this works! - Can cause bugs
+    this.parent.scope.root.IndicatorList.clean(this); // Hope this works! - Can cause bugs
 
     if (simulationArea.lastSelected == this) simulationArea.lastSelected = undefined;
     for (var i = 0; i < this.connections.length; i++) {
@@ -608,27 +604,27 @@ Node.prototype.delete = function() {
         this.connections[i].checkDeleted();
     }
     wireToBeChecked = true;
-    forceResetNodes = true;
+    forceResetIndicators = true;
     scheduleUpdate();
 }
 
-Node.prototype.isClicked = function() {
+Indicator.prototype.isClicked = function() {
     return this.absX() == simulationArea.mouseX && this.absY() == simulationArea.mouseY;
 }
 
-Node.prototype.isHover = function() {
+Indicator.prototype.isHover = function() {
     return this.absX() == simulationArea.mouseX && this.absY() == simulationArea.mouseY;
 }
 
-Node.prototype.nodeConnect = function() {
+Indicator.prototype.IndicatorConnect = function() {
 
     var x = this.absX();
     var y = this.absY();
     var n;
 
-    for (var i = 0; i < this.parent.scope.allNodes.length; i++) {
-        if (this != this.parent.scope.allNodes[i] && x == this.parent.scope.allNodes[i].absX() && y == this.parent.scope.allNodes[i].absY()) {
-            n = this.parent.scope.allNodes[i];
+    for (var i = 0; i < this.parent.scope.allIndicators.length; i++) {
+        if (this != this.parent.scope.allIndicators[i] && x == this.parent.scope.allIndicators[i].absX() && y == this.parent.scope.allIndicators[i].absY()) {
+            n = this.parent.scope.allIndicators[i];
             if (this.type == 2) {
                 for (var j = 0; j < this.connections.length; j++) {
                     n.connect(this.connections[j]);
@@ -647,7 +643,7 @@ Node.prototype.nodeConnect = function() {
             if (this.parent.scope.wires[i].checkConvergence(this)) {
                 var n = this;
                 if (this.type != 2) {
-                    n = new Node(this.absX(), this.absY(), 2, this.scope.root);
+                    n = new Indicator(this.absX(), this.absY(), 2, this.scope.root);
                     this.connect(n);
                 }
                 this.parent.scope.wires[i].converge(n);
@@ -657,10 +653,10 @@ Node.prototype.nodeConnect = function() {
     }
 
 }
-Node.prototype.cleanDelete = Node.prototype.delete;
-Node.prototype.processVerilog = function() {
+Indicator.prototype.cleanDelete = Indicator.prototype.delete;
+Indicator.prototype.processVerilog = function() {
 
-    if (this.type == NODE_INPUT) {
+    if (this.type == Indicator_INPUT) {
         if (this.parent.isVerilogResolvable())
             this.scope.stack.push(this.parent);
     }
@@ -676,7 +672,7 @@ Node.prototype.processVerilog = function() {
 
 
 // Kept for archival purposes
-// function oldNodeUpdate() {
+// function oldIndicatorUpdate() {
 //
 //     if (!this.clicked && !simulationArea.mouseDown) {
 //         var px = this.prevx;
@@ -685,7 +681,7 @@ Node.prototype.processVerilog = function() {
 //         this.prevy = this.absY();
 //         if (this.absX() != px || this.absY() != py) {
 //             updated = true;
-//             this.nodeConnect();
+//             this.IndicatorConnect();
 //             return updated;
 //         }
 //     }
@@ -771,7 +767,7 @@ Node.prototype.processVerilog = function() {
 //         this.wasClicked = false;
 //
 //         if (simulationArea.mouseX == this.absX() && simulationArea.mouseY == this.absY()) {
-//             this.nodeConnect();
+//             this.IndicatorConnect();
 //             return updated;
 //         }
 //
@@ -790,16 +786,16 @@ Node.prototype.processVerilog = function() {
 //         }
 //         if (this.type == 'a') return; // this should never happen!!
 //
-//         for (var i = 0; i < this.parent.scope.allNodes.length; i++) {
-//             if (x == this.parent.scope.allNodes[i].absX() && y == this.parent.scope.allNodes[i].absY()) {
-//                 n = this.parent.scope.allNodes[i];
+//         for (var i = 0; i < this.parent.scope.allIndicators.length; i++) {
+//             if (x == this.parent.scope.allIndicators[i].absX() && y == this.parent.scope.allIndicators[i].absY()) {
+//                 n = this.parent.scope.allIndicators[i];
 //                 this.connect(n);
 //                 break;
 //             }
 //         }
 //
 //         if (n == undefined) {
-//             n = new Node(x, y, 2, this.scope.root);
+//             n = new Indicator(x, y, 2, this.scope.root);
 //             this.connect(n);
 //             for (var i = 0; i < this.parent.scope.wires.length; i++) {
 //                 if (this.parent.scope.wires[i].checkConvergence(n)) {
@@ -817,15 +813,15 @@ Node.prototype.processVerilog = function() {
 //             flag = 2;
 //         }
 //         if (flag == 2) {
-//             for (var i = 0; i < this.parent.scope.allNodes.length; i++) {
-//                 if (x == this.parent.scope.allNodes[i].absX() && y == this.parent.scope.allNodes[i].absY()) {
-//                     n1 = this.parent.scope.allNodes[i];
+//             for (var i = 0; i < this.parent.scope.allIndicators.length; i++) {
+//                 if (x == this.parent.scope.allIndicators[i].absX() && y == this.parent.scope.allIndicators[i].absY()) {
+//                     n1 = this.parent.scope.allIndicators[i];
 //                     n.connect(n1);
 //                     break;
 //                 }
 //             }
 //             if (n1 == undefined) {
-//                 n1 = new Node(x, y, 2, this.scope.root);
+//                 n1 = new Indicator(x, y, 2, this.scope.root);
 //                 n.connect(n1);
 //                 for (var i = 0; i < this.parent.scope.wires.length; i++) {
 //                     if (this.parent.scope.wires[i].checkConvergence(n1)) {
